@@ -1,0 +1,144 @@
+package com.mc.jinjie;
+
+import java.awt.List;
+import java.sql.Time;
+import java.util.ArrayList;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Vector;
+
+public class JinJie extends JavaPlugin implements Listener{
+	public static JinJie plugin=null;
+	int tiem=0;	int yss_time=0;
+	ArrayList<Block>b_list=new ArrayList<>();
+	@Override
+	public void onEnable() {
+		// TODO Auto-generated method stub
+		plugin=this;
+		Bukkit.getPluginManager().registerEvents(this, this);
+		Bukkit.getServer().getLogger().info("加载忍术插件成功!");
+	}
+	@Override
+	public void onDisable() {
+		// TODO Auto-generated method stub
+		Bukkit.getServer().getLogger().info("卸载成功!");
+	}
+	public class myThread extends BukkitRunnable{
+		int time;Location pLocation;Block block;
+		public myThread(int time,Location pLocation) {
+			// TODO Auto-generated constructor stub
+			this.time=time;this.pLocation=pLocation;
+		}
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			if(time == 10)
+	        {	
+	        	block=this.pLocation.getBlock();
+	        	block.setType(Material.BRICK.WOOD);
+	        	b_list.add(block);
+	        }else if(time==0) {
+	        	block=this.pLocation.getBlock();
+	        	block.setType(Material.AIR);
+		           cancel();  // 终止线程
+		           return;
+	        }
+	        time--;
+		}
+		public Block getBlock() {
+			return block;
+		}
+	}
+	@Override
+	public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+		// TODO Auto-generated method stub
+		if(!(sender instanceof Player)) {
+			 sender.sendMessage("你不是玩家!");
+		}
+		if(command.getName().equalsIgnoreCase("tss")&&args.length==0&&sender.hasPermission("tss")&&tiem==0) {
+			Player p=(Player)sender;
+			double z,x;tiem=10;
+			Location p_loca=p.getLocation();
+			Vector v_player= p.getLocation().getDirection();v_player.normalize();//获取玩家前面的位置
+			Location p_Location=p.getLocation();//最终的位置
+			new myThread(tiem, p_loca).runTaskTimer(this, 0L, 20L);
+			z=p_Location.getZ();x=p_Location.getX();//获取原本位置
+			p_Location.add(v_player);
+			double x1,z1;
+			x1=p_Location.getX();z1=p_Location.getZ();
+			if(x1>x) {
+				x+=10;
+			}
+			if(x1<x) {
+				x-=10;
+			}
+			if(z1>z) {
+				z+=10;
+			}
+			if(z1<z) {
+				z-=10;
+			}
+			p_Location.setX(x);p_Location.setZ(z);
+			p.teleport(p_Location);p.sendMessage(ChatColor.GREEN+"[火影忍者]:"+ChatColor.YELLOW+"替身术!");
+			new BukkitRunnable() {
+				
+				@Override
+				public void run() {
+					tiem--;
+					if(tiem==0) {
+						cancel();  // 终止线程
+				           return;
+					}
+				}
+			}.runTaskTimer(this, 0L, 20L);
+		}else if(command.getName().equalsIgnoreCase("tss")&&args.length==0&&!sender.isPermissionSet("tss")){
+			sender.sendMessage(ChatColor.GREEN+"[火影忍者]:"+ChatColor.RED+"您没有权限!");
+		}else if(command.getName().equalsIgnoreCase("tss")&&args.length==0&&sender.hasPermission("tss")&&tiem!=0) 
+			sender.sendMessage(ChatColor.GREEN+"[火影忍者]:"+ChatColor.RED+"冷却时间:"+tiem+"秒");
+		if(command.getName().equalsIgnoreCase("yss")&&args.length==2&&sender.hasPermission("yss")&&yss_time==0) {
+			int sj=Integer.parseInt(args[0]); int dj=Integer.parseInt(args[1]);yss_time=sj/20+10;//冷却时间
+			PotionEffect yss=new PotionEffect(PotionEffectType.INVISIBILITY, sj, dj);
+			Player p=(Player)sender;
+			p.addPotionEffect(yss);
+			new BukkitRunnable() {
+				
+				@Override
+				public void run() {
+					yss_time--;
+					if(yss_time==0) {
+						cancel();  // 终止线程
+				           return;
+					}
+					
+				}
+			}.runTaskTimerAsynchronously(this, 0L, 20L);
+			p.sendMessage(ChatColor.GREEN+"[火影忍者]:"+ChatColor.YELLOW+"隐身术!");
+		}else if(command.getName().equalsIgnoreCase("yss")&&!sender.isPermissionSet("yss")) {
+			sender.sendMessage(ChatColor.RED+"你没有权限");
+		}else if(command.getName().equalsIgnoreCase("yss")&&sender.hasPermission("yss")&&yss_time!=0) {
+			sender.sendMessage(ChatColor.GREEN+"[火影忍者]:"+ChatColor.RED+"冷却时间:"+yss_time);
+		}
+		return true;
+	}
+	@EventHandler
+	public void OnBreak(BlockBreakEvent even){
+		Block b__lock=b_list.get(b_list.size()-1);
+		if(even.getBlock().equals(b__lock)){
+			even.setCancelled(true);
+		}
+	}
+}
